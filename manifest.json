@@ -1,0 +1,17 @@
+{
+  "name": "Text to Table",
+  "id": "1234567890123456789",
+  "api": "1.0.0",
+  "main": "code.js",
+  "capabilities": [],
+  "enableProposedApi": false,
+  "editorType": ["figma", "figjam"],
+  "ui": "ui.html",
+  "relaunchButtons": [
+    {
+      "command": "resize",
+      "name": "Adjust Table Width",
+      "multipleSelection": false
+    }
+  ]
+}

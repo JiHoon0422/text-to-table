@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>텍스트 투 테이블</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        padding: 16px;
+        background: #ffffff;
+        color: #1a1a1a;
+        line-height: 1.5;
+      }
+
+      .container {
+        max-width: 100%;
+        width: 100%;
+      }
+
+      .header {
+        margin-bottom: 20px;
+      }
+
+      .title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin-bottom: 8px;
+      }
+
+      .description {
+        font-size: 12px;
+        color: #6b7280;
+        margin-bottom: 16px;
+      }
+
+      .input-section {
+        margin-bottom: 20px;
+      }
+
+      .label {
+        display: block;
+        font-size: 12px;
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 8px;
+      }
+
+      .textarea {
+        width: 100%;
+        min-height: 120px;
+        padding: 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 12px;
+        font-family: "SF Mono", "Monaco", "Menlo", "Consolas", monospace;
+        line-height: 1.4;
+        resize: vertical;
+        background: #f9fafb;
+        transition: border-color 0.2s ease;
+      }
+
+      .textarea:focus {
+        outline: none;
+        border-color: #3b82f6;
+        background: #ffffff;
+      }
+
+      .textarea::placeholder {
+        color: #9ca3af;
+      }
+
+      .options-section {
+        margin-bottom: 20px;
+      }
+
+      .options-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .option-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .select {
+        padding: 8px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        font-size: 12px;
+        background: #ffffff;
+        color: #374151;
+      }
+
+      .header-options {
+        margin-top: 8px;
+      }
+
+      .checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+      }
+
+      .checkbox {
+        width: 16px;
+        height: 16px;
+      }
+
+      .preview-section {
+        margin-bottom: 20px;
+      }
+
+      .preview-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11px;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        overflow: hidden;
+        max-height: 200px;
+        overflow-y: auto;
+        display: block;
+        white-space: nowrap;
+      }
+
+      .preview-table th,
+      .preview-table td {
+        padding: 6px 8px;
+        border-right: 1px solid #e5e7eb;
+        text-align: left;
+        min-width: 60px;
+      }
+
+      .preview-table th {
+        background: #f3f4f6;
+        font-weight: 600;
+        color: #374151;
+      }
+
+      .preview-table td {
+        background: #ffffff;
+        color: #6b7280;
+      }
+
+      .preview-table tbody tr:nth-child(even) td {
+        background: #f9fafb;
+      }
+
+      .button-group {
+        display: flex;
+        gap: 8px;
+      }
+
+      .button {
+        flex: 1;
+        padding: 10px 16px;
+        border: none;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .button-primary {
+        background: #3b82f6;
+        color: #ffffff;
+      }
+
+      .button-primary:hover:not(:disabled) {
+        background: #2563eb;
+      }
+
+      .button-primary:disabled {
+        background: #d1d5db;
+        color: #9ca3af;
+        cursor: not-allowed;
+      }
+
+      .button-secondary {
+        background: #f3f4f6;
+        color: #374151;
+        border: 1px solid #d1d5db;
+      }
+
+      .button-secondary:hover {
+        background: #e5e7eb;
+      }
+
+      .error-message {
+        color: #dc2626;
+        font-size: 11px;
+        margin-top: 4px;
+        padding: 8px;
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 4px;
+      }
+
+      .info-message {
+        color: #059669;
+        font-size: 11px;
+        margin-top: 4px;
+        padding: 8px;
+        background: #ecfdf5;
+        border: 1px solid #a7f3d0;
+        border-radius: 4px;
+      }
+
+      .paste-hint {
+        font-size: 11px;
+        color: #6b7280;
+        margin-top: 4px;
+        font-style: italic;
+      }
+
+      .stats {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        color: #6b7280;
+        margin-bottom: 8px;
+      }
+
+      .alignment-controls {
+        display: flex;
+        gap: 1px; /* To mimic table cell borders */
+        background-color: #e5e7eb;
+        border: 1px solid #e5e7eb;
+        border-bottom: none;
+        overflow-x: auto;
+        padding-bottom: 2px; /* For scrollbar */
+      }
+
+      .alignment-col {
+        min-width: 60px; /* Same as preview td/th */
+        padding: 4px 8px;
+        flex-grow: 1;
+        flex-basis: 0;
+        display: flex;
+        justify-content: center;
+        gap: 2px;
+        background-color: #f3f4f6; /* Same as preview th */
+      }
+
+      .align-btn {
+        width: 20px;
+        height: 20px;
+        border: 1px solid transparent;
+        border-radius: 3px;
+        cursor: pointer;
+        background-color: #e5e7eb;
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: 14px 14px;
+      }
+
+      .align-btn:hover {
+        background-color: #d1d5db;
+      }
+
+      .align-btn.active {
+        background-color: #3b82f6;
+        border-color: #2563eb;
+      }
+
+      .align-btn.left {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23ffffff'%3E%3Cpath d='M2 4h12v1H2zm0 3h8v1H2zm0 3h12v1H2zm0 3h8v1H2z'/%3E%3C/svg%3E");
+      }
+      .align-btn.center {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23ffffff'%3E%3Cpath d='M2 4h12v1H2zm2 3h8v1H4zm-2 3h12v1H2zm2 3h8v1H4z'/%3E%3C/svg%3E");
+      }
+      .align-btn.right {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23ffffff'%3E%3Cpath d='M2 4h12v1H2zm4 3h8v1H6zM2 10h12v1H2zm4 3h8v1H6z'/%3E%3C/svg%3E");
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="title">텍스트를 테이블로 변환</div>
+        <div class="description">
+          엑셀이나 구글 시트에서 복사한 데이터를 붙여넣어 피그마 테이블로
+          변환하세요
+        </div>
+      </div>
+
+      <div class="input-section">
+        <label class="label">텍스트 데이터</label>
+        <textarea
+          id="textInput"
+          class="textarea"
+          placeholder="여기에 데이터를 붙여넣으세요...&#10;&#10;예시:&#10;이름	나이	도시&#10;김철수	25	서울&#10;이영희	30	부산"
+        ></textarea>
+        <div class="paste-hint">
+          Ctrl+V (Windows) 또는 Cmd+V (Mac)으로 붙여넣기
+        </div>
+      </div>
+
+      <div class="options-section">
+        <label class="label">변환 옵션</label>
+        <div class="options-grid">
+          <div class="option-group">
+            <label class="label">구분자</label>
+            <select id="delimiter" class="select">
+              <option value="auto">자동 감지</option>
+              <option value="\t">탭 (TSV)</option>
+              <option value=",">쉼표 (CSV)</option>
+              <option value=";">세미콜론</option>
+              <option value="|">파이프 (|)</option>
+              <option value=" ">공백</option>
+            </select>
+          </div>
+          <div class="option-group">
+            <label class="label">스타일</label>
+            <select id="tableStyle" class="select">
+              <option value="default">기본</option>
+              <option value="minimal">미니멀</option>
+              <option value="bold">굵은 헤더</option>
+              <option value="colored">컬러</option>
+            </select>
+          </div>
+        </div>
+        <div class="header-options">
+          <label class="label">헤더 설정</label>
+          <div class="checkbox-group">
+            <input
+              type="checkbox"
+              id="hasColumnHeader"
+              class="checkbox"
+              checked
+            />
+            <label for="hasColumnHeader" class="label"
+              >첫 번째 행을 헤더로 사용 (Column-head)</label
+            >
+          </div>
+          <div class="checkbox-group">
+            <input type="checkbox" id="hasRowHeader" class="checkbox" />
+            <label for="hasRowHeader" class="label"
+              >첫 번째 열을 헤더로 사용 (Row-head)</label
+            >
+          </div>
+        </div>
+      </div>
+
+      <div class="preview-section">
+        <label class="label">미리보기</label>
+        <div class="stats">
+          <span id="tableStats">행: 0, 열: 0</span>
+          <span id="parseStatus">데이터를 입력해주세요</span>
+        </div>
+        <div id="alignment-controls" class="alignment-controls"></div>
+        <div class="preview-table-container">
+          <table id="previewTable" class="preview-table">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="errorContainer"></div>
+
+      <div class="button-group">
+        <button id="cancelBtn" class="button button-secondary">취소</button>
+        <button id="createBtn" class="button button-primary" disabled>
+          테이블 생성
+        </button>
+      </div>
+    </div>
+
+    <script>
+      // UI 요소들
+      const textInput = document.getElementById("textInput");
+      const delimiter = document.getElementById("delimiter");
+      const tableStyle = document.getElementById("tableStyle");
+      const hasHeader = document.getElementById("hasColumnHeader");
+      const hasRowHeader = document.getElementById("hasRowHeader");
+      const previewTable = document.getElementById("previewTable");
+      const tableStats = document.getElementById("tableStats");
+      const parseStatus = document.getElementById("parseStatus");
+      const errorContainer = document.getElementById("errorContainer");
+      const cancelBtn = document.getElementById("cancelBtn");
+      const createBtn = document.getElementById("createBtn");
+      const alignmentControls = document.getElementById("alignment-controls");
+
+      let parsedData = [];
+      let detectedDelimiter = "";
+      let columnAlignments = [];
+
+      // CSV 파싱 함수 (Papa Parse 대신 간단한 파서 구현)
+      function parseCSV(text, delim = "auto") {
+        if (!text.trim()) return [];
+
+        const lines = text.trim().split(/\r?\n/);
+        let usedDelimiter = delim;
+
+        // 자동 구분자 감지
+        if (delim === "auto") {
+          const delimiters = ["\t", ",", ";", "|", " "];
+          const counts = delimiters.map((d) => ({
+            delimiter: d,
+            count: lines[0].split(d).length,
+          }));
+
+          // 가장 많은 필드를 만드는 구분자 선택
+          const best = counts.reduce((max, current) =>
+            current.count > max.count ? current : max
+          );
+
+          usedDelimiter = best.delimiter;
+          detectedDelimiter =
+            usedDelimiter === "\t"
+              ? "탭"
+              : usedDelimiter === ","
+              ? "쉼표"
+              : usedDelimiter === ";"
+              ? "세미콜론"
+              : usedDelimiter === "|"
+              ? "파이프"
+              : usedDelimiter === " "
+              ? "공백"
+              : best.delimiter;
+        }
+
+        // 각 라인을 파싱
+        const result = lines.map((line) => {
+          // 간단한 CSV 파싱 (따옴표 처리 포함)
+          const fields = [];
+          let current = "";
+          let inQuotes = false;
+          let i = 0;
+
+          while (i < line.length) {
+            const char = line[i];
+            const nextChar = line[i + 1];
+
+            if (char === '"' && !inQuotes) {
+              inQuotes = true;
+            } else if (char === '"' && inQuotes && nextChar === '"') {
+              current += '"';
+              i++; // 다음 따옴표 건너뛰기
+            } else if (char === '"' && inQuotes) {
+              inQuotes = false;
+            } else if (char === usedDelimiter && !inQuotes) {
+              fields.push(current.trim());
+              current = "";
+            } else {
+              current += char;
+            }
+            i++;
+          }
+
+          fields.push(current.trim());
+          return fields;
+        });
+
+        return result;
+      }
+
+      // 테이블 미리보기 업데이트
+      function updatePreview() {
+        const text = textInput.value;
+        const delimiterValue = delimiter.value;
+        const useColumnHeader = hasHeader.checked;
+        const useRowHeader = hasRowHeader.checked;
+
+        // 에러 메시지 초기화
+        errorContainer.innerHTML = "";
+
+        if (!text.trim()) {
+          parsedData = [];
+          updatePreviewTable([]);
+          updateStats(0, 0, "데이터를 입력해주세요");
+          createBtn.disabled = true;
+          return;
+        }
+
+        try {
+          parsedData = parseCSV(text, delimiterValue);
+
+          if (parsedData.length === 0) {
+            throw new Error("파싱할 수 있는 데이터가 없습니다.");
+          }
+
+          // 빈 행 제거
+          parsedData = parsedData.filter((row) =>
+            row.some((cell) => cell && cell.trim())
+          );
+
+          if (parsedData.length === 0) {
+            throw new Error("유효한 데이터가 없습니다.");
+          }
+
+          // 컬럼 수 통일 (가장 긴 행을 기준으로)
+          const maxCols = Math.max(...parsedData.map((row) => row.length));
+          parsedData = parsedData.map((row) => {
+            while (row.length < maxCols) {
+              row.push("");
+            }
+            return row;
+          });
+
+          updatePreviewTable(parsedData);
+          renderAlignmentControls(maxCols);
+
+          const rows = parsedData.length;
+          const cols = maxCols;
+          let status = `파싱 완료`;
+          if (delimiterValue === "auto") {
+            status += ` (${detectedDelimiter} 구분자 감지)`;
+          }
+
+          updateStats(rows, cols, status);
+          createBtn.disabled = false;
+        } catch (error) {
+          showError(error.message);
+          createBtn.disabled = true;
+        }
+      }
+
+      // 미리보기 테이블 업데이트
+      function updatePreviewTable(data) {
+        const thead = previewTable.querySelector("thead");
+        const tbody = previewTable.querySelector("tbody");
+
+        thead.innerHTML = "";
+        tbody.innerHTML = "";
+
+        if (data.length === 0) return;
+
+        const useColumnHeader = hasHeader.checked;
+        const useRowHeader = hasRowHeader.checked;
+        const columnHeaderRow = useColumnHeader ? data[0] : null;
+        const dataRows = useColumnHeader ? data.slice(1) : data;
+
+        // 컬럼 헤더 생성
+        if (columnHeaderRow) {
+          const tr = document.createElement("tr");
+          columnHeaderRow.forEach((cell, colIndex) => {
+            const th = document.createElement("th");
+            // 첫 번째 셀이 row header와 column header가 교차하는 지점
+            if (colIndex === 0 && useRowHeader) {
+              th.style.background = "#e5e7eb";
+              th.style.fontWeight = "bold";
+            }
+            th.textContent = cell || "(빈값)";
+            tr.appendChild(th);
+          });
+          thead.appendChild(tr);
+        }
+
+        // 데이터 행 생성 (최대 10행까지만 미리보기)
+        const previewRows = dataRows.slice(0, 10);
+        previewRows.forEach((row) => {
+          const tr = document.createElement("tr");
+          row.forEach((cell, colIndex) => {
+            const element =
+              colIndex === 0 && useRowHeader
+                ? document.createElement("th")
+                : document.createElement("td");
+
+            // 행 헤더 스타일
+            if (colIndex === 0 && useRowHeader) {
+              element.style.background = "#f3f4f6";
+              element.style.fontWeight = "600";
+              element.style.color = "#374151";
+            }
+
+            element.textContent = cell || "(빈값)";
+            tr.appendChild(element);
+          });
+          tbody.appendChild(tr);
+        });
+
+        // 더 많은 행이 있다면 표시
+        if (dataRows.length > 10) {
+          const tr = document.createElement("tr");
+          const td = document.createElement("td");
+          td.colSpan = data[0].length;
+          td.textContent = `... ${dataRows.length - 10}개 행 더 있음`;
+          td.style.textAlign = "center";
+          td.style.fontStyle = "italic";
+          td.style.color = "#6b7280";
+          tr.appendChild(td);
+          tbody.appendChild(tr);
+        }
+      }
+
+      // 통계 업데이트
+      function updateStats(rows, cols, status) {
+        tableStats.textContent = `행: ${rows}, 열: ${cols}`;
+        parseStatus.textContent = status;
+      }
+
+      // 에러 메시지 표시
+      function showError(message) {
+        errorContainer.innerHTML = `
+        <div class="error-message">
+          오류: ${message}
+        </div>
+      `;
+      }
+
+      // 성공 메시지 표시
+      function showSuccess(message) {
+        errorContainer.innerHTML = `
+        <div class="info-message">
+          ${message}
+        </div>
+      `;
+      }
+
+      // 이벤트 리스너
+      textInput.addEventListener("input", updatePreview);
+      delimiter.addEventListener("change", updatePreview);
+      hasHeader.addEventListener("change", updatePreview);
+      hasRowHeader.addEventListener("change", updatePreview);
+      tableStyle.addEventListener("change", updatePreview);
+
+      // 붙여넣기 이벤트 처리
+      textInput.addEventListener("paste", (e) => {
+        // 조금 지연 후에 파싱 (붙여넣기가 완료된 후)
+        setTimeout(updatePreview, 10);
+      });
+
+      // 취소 버튼
+      cancelBtn.addEventListener("click", () => {
+        parent.postMessage({ pluginMessage: { type: "cancel" } }, "*");
+      });
+
+      // 테이블 생성 버튼
+      createBtn.addEventListener("click", () => {
+        if (parsedData.length === 0) {
+          showError("생성할 데이터가 없습니다.");
+          return;
+        }
+
+        const config = {
+          data: parsedData,
+          hasColumnHeader: hasHeader.checked,
+          hasRowHeader: hasRowHeader.checked,
+          style: tableStyle.value,
+          delimiter: delimiter.value,
+          alignments: columnAlignments,
+        };
+
+        parent.postMessage(
+          {
+            pluginMessage: {
+              type: "create-table",
+              config: config,
+            },
+          },
+          "*"
+        );
+      });
+
+      // 플러그인 메시지 수신
+      window.onmessage = (event) => {
+        const { type, message } = event.data.pluginMessage || {};
+
+        if (type === "table-created") {
+          showSuccess("테이블이 성공적으로 생성되었습니다!");
+          setTimeout(() => {
+            parent.postMessage({ pluginMessage: { type: "close" } }, "*");
+          }, 1500);
+        } else if (type === "error") {
+          showError(message);
+        }
+      };
+
+      // 초기 포커스
+      textInput.focus();
+
+      function renderAlignmentControls(numCols) {
+        columnAlignments = Array(numCols).fill("LEFT");
+        let html = "";
+        for (let i = 0; i < numCols; i++) {
+          html += `
+                <div class="alignment-col" id="align-col-${i}">
+                    <button class="align-btn left active" data-align="LEFT" data-col="${i}"></button>
+                    <button class="align-btn center" data-align="CENTER" data-col="${i}"></button>
+                    <button class="align-btn right" data-align="RIGHT" data-col="${i}"></button>
+                </div>
+            `;
+        }
+        alignmentControls.innerHTML = html;
+        syncPreviewAlignment();
+      }
+
+      function syncPreviewAlignment() {
+        if (!previewTable.rows.length) return;
+
+        for (let i = 0; i < previewTable.rows.length; i++) {
+          for (let j = 0; j < previewTable.rows[i].cells.length; j++) {
+            if (columnAlignments[j]) {
+              previewTable.rows[i].cells[j].style.textAlign =
+                columnAlignments[j].toLowerCase();
+            }
+          }
+        }
+        // Also align the controls themselves to match
+        document.querySelectorAll(".alignment-col").forEach((colDiv, index) => {
+          const previewCell = previewTable.rows[0]?.cells[index];
+          if (previewCell) {
+            colDiv.style.minWidth = `${previewCell.offsetWidth}px`;
+            colDiv.style.flexBasis = `${previewCell.offsetWidth}px`;
+          }
+        });
+      }
+
+      function handleAlignmentClick(event) {
+        const target = event.target;
+        if (!target.classList.contains("align-btn")) return;
+
+        const col = parseInt(target.dataset.col, 10);
+        const align = target.dataset.align;
+
+        columnAlignments[col] = align;
+
+        // Update active button
+        const parent = target.parentElement;
+        parent
+          .querySelectorAll(".align-btn")
+          .forEach((btn) => btn.classList.remove("active"));
+        target.classList.add("active");
+
+        syncPreviewAlignment();
+      }
+
+      alignmentControls.addEventListener("click", handleAlignmentClick);
+    </script>
+  </body>
+</html>
