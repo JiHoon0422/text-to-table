@@ -6,6 +6,7 @@
 // --- 타입 정의 ---
 type TableStyle = "default" | "minimal" | "bold" | "colored";
 type TextAlignment = "LEFT" | "CENTER" | "RIGHT";
+type FieldType = "text" | "select" | "date";
 type MessageType =
   | "create-table"
   | "cancel"
@@ -20,6 +21,7 @@ interface TableConfig {
   style: TableStyle;
   delimiter?: string;
   alignments?: TextAlignment[];
+  fieldTypes?: FieldType[];
 }
 
 interface UIMessage {
@@ -136,6 +138,39 @@ figma.ui.onmessage = (msg: UIMessage): void => {
 };
 
 /**
+ * Chevron Down SVG 아이콘 생성 (SelectField용)
+ */
+function createChevronDownIcon(): SceneNode {
+  const chevronSvg = `
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M4 6L8 10L12 6" stroke="#666666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  `;
+
+  const icon = figma.createNodeFromSvg(chevronSvg);
+  icon.name = "chevron-down";
+  return icon;
+}
+
+/**
+ * Calendar SVG 아이콘 생성 (DateField용)
+ */
+function createCalendarIcon(): SceneNode {
+  const calendarSvg = `
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="2" y="3" width="12" height="12" rx="2" stroke="#666666" stroke-width="1" fill="none"/>
+      <line x1="5" y1="1" x2="5" y2="4" stroke="#666666" stroke-width="1" stroke-linecap="round"/>
+      <line x1="11" y1="1" x2="11" y2="4" stroke="#666666" stroke-width="1" stroke-linecap="round"/>
+      <line x1="2" y1="7" x2="14" y2="7" stroke="#666666" stroke-width="1"/>
+    </svg>
+  `;
+
+  const icon = figma.createNodeFromSvg(calendarSvg);
+  icon.name = "calendar";
+  return icon;
+}
+
+/**
  * 데이터로부터 피그마 테이블 생성
  */
 async function createTableFromData(config: TableConfig): Promise<void> {
@@ -183,7 +218,8 @@ async function createTableFromData(config: TableConfig): Promise<void> {
       data,
       hasColumnHeader,
       hasRowHeader,
-      alignments
+      alignments,
+      config.fieldTypes
     );
 
     // 스타일 적용
@@ -526,7 +562,8 @@ async function populateTableData(
   data: string[][],
   hasColumnHeader: boolean,
   hasRowHeader: boolean,
-  alignments?: TextAlignment[]
+  alignments?: TextAlignment[],
+  fieldTypes?: FieldType[]
 ): Promise<void> {
   const rows = data.length;
   const cols = data[0]?.length || 0;
@@ -556,6 +593,58 @@ async function populateTableData(
       } else {
         cell.text.fontName = FONT_REGULAR;
         cell.text.fontSize = FONT_SIZE_BODY;
+      }
+
+      // 필드 타입에 따른 아이콘 추가 (Frame 기반 테이블에서만)
+      if ("container" in table && fieldTypes && !isHeader) {
+        const fieldType = fieldTypes[col] || "text";
+        if (fieldType === "select" || fieldType === "date") {
+          // CustomTableObject의 경우 실제 셀 프레임에 접근
+          const customTable = table as CustomTableObject;
+          if (
+            customTable.cells &&
+            customTable.cells[row] &&
+            customTable.cells[row][col]
+          ) {
+            const cellFrame = customTable.cells[row][col].frame;
+            const textNode = customTable.cells[row][col].text;
+
+            // 셀의 원래 너비 저장
+            const originalWidth = cellFrame.width;
+
+            // 셀을 수평 레이아웃으로 변경
+            cellFrame.layoutMode = "HORIZONTAL";
+            cellFrame.counterAxisAlignItems = "CENTER";
+            cellFrame.primaryAxisAlignItems = "SPACE_BETWEEN";
+            cellFrame.counterAxisSizingMode = "FIXED"; // 너비 고정 유지
+
+            // 텍스트 노드 크기 조절 설정
+            textNode.textAutoResize = "HEIGHT"; // 높이만 자동 조절, 너비는 고정
+            textNode.layoutAlign = "INHERIT";
+
+            // 아이콘 생성 및 추가
+            let icon: SceneNode;
+            if (fieldType === "select") {
+              icon = createChevronDownIcon();
+            } else {
+              // fieldType === "date"
+              icon = createCalendarIcon();
+            }
+
+            // 아이콘 크기 고정 설정
+            if ("layoutAlign" in icon) {
+              (icon as any).layoutAlign = "INHERIT";
+            }
+            if ("resize" in icon) {
+              (icon as any).resize(16, 16); // 아이콘 크기 고정
+            }
+
+            cellFrame.appendChild(icon);
+
+            // 셀의 너비를 원래 너비로 다시 설정
+            cellFrame.resize(originalWidth, cellFrame.height);
+          }
+        }
       }
     }
   }

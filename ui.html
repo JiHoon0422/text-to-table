@@ -134,11 +134,16 @@
         font-size: 11px;
         border: 1px solid #e5e7eb;
         border-radius: 6px;
-        overflow: hidden;
+
         max-height: 200px;
         overflow-y: auto;
         display: block;
         white-space: nowrap;
+        margin-top: 16px;
+      }
+      .preview-table-container {
+        width: 100%;
+        overflow-x: auto;
       }
 
       .preview-table th,
@@ -247,6 +252,7 @@
         border: 1px solid #e5e7eb;
         border-bottom: none;
         overflow-x: auto;
+        margin-top: 16px;
         padding-bottom: 2px; /* For scrollbar */
       }
 
@@ -290,6 +296,54 @@
       }
       .align-btn.right {
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23ffffff'%3E%3Cpath d='M2 4h12v1H2zm4 3h8v1H6zM2 10h12v1H2zm4 3h8v1H6z'/%3E%3C/svg%3E");
+      }
+
+      .field-type-controls {
+        display: flex;
+        gap: 1px;
+        background-color: #e5e7eb;
+        border: 1px solid #e5e7eb;
+        border-bottom: none;
+        overflow-x: auto;
+        padding-bottom: 2px;
+        margin-top: 8px;
+      }
+
+      .field-type-col {
+        min-width: 60px;
+        padding: 4px 8px;
+        flex-grow: 1;
+        flex-basis: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background-color: #f3f4f6;
+      }
+
+      .field-type-label {
+        font-size: 10px;
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 4px;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+      }
+
+      .field-type-select {
+        width: 100%;
+        padding: 2px 4px;
+        border: 1px solid #d1d5db;
+        border-radius: 3px;
+        font-size: 10px;
+        background: #ffffff;
+        color: #374151;
+      }
+
+      .hidden {
+        display: none;
       }
     </style>
   </head>
@@ -379,11 +433,17 @@
         </div>
       </div>
 
-      <div class="preview-section">
+      <div class="preview-section hidden">
         <label class="label"><b>Preview</b></label>
         <div class="stats">
           <span id="tableStats">Rows: 0, Columns: 0</span>
           <span id="parseStatus">Please enter data</span>
+        </div>
+        <div style="margin-top: 8px">
+          <label class="label" style="font-size: 11px; margin-bottom: 4px"
+            ><b>Column Types</b></label
+          >
+          <div id="field-type-controls" class="field-type-controls"></div>
         </div>
         <div id="alignment-controls" class="alignment-controls"></div>
         <div class="preview-table-container">
@@ -419,10 +479,12 @@
       const cancelBtn = document.getElementById("cancelBtn");
       const createBtn = document.getElementById("createBtn");
       const alignmentControls = document.getElementById("alignment-controls");
+      const fieldTypeControls = document.getElementById("field-type-controls");
 
       let parsedData = [];
       let detectedDelimiter = "";
       let columnAlignments = [];
+      let columnFieldTypes = [];
 
       // CSV 파싱 함수 (Papa Parse 대신 간단한 파서 구현)
       function parseCSV(text, delim = "auto") {
@@ -509,6 +571,7 @@
         const headerType = getHeaderType();
         const useColumnHeader = headerType === "column";
         const useRowHeader = headerType === "row";
+        const previewSection = document.querySelector(".preview-section");
 
         // 에러 메시지 초기화
         errorContainer.innerHTML = "";
@@ -518,6 +581,7 @@
           updatePreviewTable([]);
           updateStats(0, 0, "Please enter data");
           createBtn.disabled = true;
+          previewSection.classList.add("hidden");
           return;
         }
 
@@ -548,6 +612,7 @@
 
           updatePreviewTable(parsedData);
           renderAlignmentControls(maxCols);
+          renderFieldTypeControls(maxCols);
 
           const rows = parsedData.length;
           const cols = maxCols;
@@ -558,9 +623,11 @@
 
           updateStats(rows, cols, status);
           createBtn.disabled = false;
+          previewSection.classList.remove("hidden");
         } catch (error) {
           showError(error.message);
           createBtn.disabled = true;
+          previewSection.classList.add("hidden");
         }
       }
 
@@ -574,8 +641,9 @@
 
         if (data.length === 0) return;
 
-        const useColumnHeader = hasHeader.checked;
-        const useRowHeader = hasRowHeader.checked;
+        const headerType = getHeaderType();
+        const useColumnHeader = headerType === "column";
+        const useRowHeader = headerType === "row";
         const columnHeaderRow = useColumnHeader ? data[0] : null;
         const dataRows = useColumnHeader ? data.slice(1) : data;
 
@@ -690,6 +758,7 @@
           style: tableStyle.value,
           delimiter: delimiter.value,
           alignments: columnAlignments,
+          fieldTypes: columnFieldTypes,
         };
 
         parent.postMessage(
@@ -736,6 +805,33 @@
         syncPreviewAlignment();
       }
 
+      function renderFieldTypeControls(numCols) {
+        columnFieldTypes = Array(numCols).fill("text");
+        const headerType = getHeaderType();
+        const headers =
+          headerType === "column" && parsedData.length > 0
+            ? parsedData[0]
+            : Array.from({ length: numCols }, (_, i) => `Column ${i + 1}`);
+
+        let html = "";
+        for (let i = 0; i < numCols; i++) {
+          const headerName = headers[i] || `Column ${i + 1}`;
+          html += `
+                <div class="field-type-col" id="field-type-col-${i}">
+                    <div class="field-type-label" title="${headerName}">${headerName}</div>
+                    <select class="field-type-select" data-col="${i}">
+                        <option value="text">Text</option>
+                        <option value="select">Select</option>
+                        <option value="date">Date</option>
+                    </select>
+                </div>
+            `;
+        }
+        fieldTypeControls.innerHTML = html;
+        // Sync width with preview table after rendering
+        setTimeout(() => syncPreviewAlignment(), 0);
+      }
+
       function syncPreviewAlignment() {
         if (!previewTable.rows.length) return;
 
@@ -755,6 +851,17 @@
             colDiv.style.flexBasis = `${previewCell.offsetWidth}px`;
           }
         });
+
+        // Also sync field type controls width
+        document
+          .querySelectorAll(".field-type-col")
+          .forEach((colDiv, index) => {
+            const previewCell = previewTable.rows[0]?.cells[index];
+            if (previewCell) {
+              colDiv.style.minWidth = `${previewCell.offsetWidth}px`;
+              colDiv.style.flexBasis = `${previewCell.offsetWidth}px`;
+            }
+          });
       }
 
       function handleAlignmentClick(event) {
@@ -777,6 +884,18 @@
       }
 
       alignmentControls.addEventListener("click", handleAlignmentClick);
+
+      function handleFieldTypeChange(event) {
+        const target = event.target;
+        if (!target.classList.contains("field-type-select")) return;
+
+        const col = parseInt(target.dataset.col, 10);
+        const fieldType = target.value;
+
+        columnFieldTypes[col] = fieldType;
+      }
+
+      fieldTypeControls.addEventListener("change", handleFieldTypeChange);
     </script>
   </body>
 </html>
