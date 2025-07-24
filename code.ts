@@ -1,12 +1,7 @@
 // 피그마 플러그인 메인 코드 - TypeScript 버전
 
 // --- 전역 선언 ---
-declare const figma: any;
-declare const __html__: any;
-declare const console: any;
-type FontName = any;
-type TableNode = any;
-type Paint = any;
+// Figma 플러그인 타입들은 이미 정의되어 있음
 
 // --- 타입 정의 ---
 type TableStyle = "default" | "minimal" | "bold" | "colored";
@@ -40,48 +35,43 @@ interface UIMessage {
 }
 
 interface TableColors {
-  white: { r: number; g: number; b: number };
-  lightGray: { r: number; g: number; b: number };
-  mediumGray: { r: number; g: number; b: number };
-  darkGray: { r: number; g: number; b: number };
-  blue: { r: number; g: number; b: number };
-  lightBlue: { r: number; g: number; b: number };
-  text: { r: number; g: number; b: number };
-  headerText: { r: number; g: number; b: number };
+  white: RGB;
+  lightGray: RGB;
+  mediumGray: RGB;
+  darkGray: RGB;
+  blue: RGB;
+  lightBlue: RGB;
+  text: RGB;
+  headerText: RGB;
 }
 
 interface CellReference {
-  frame: any; // FrameNode
-  text: any; // TextNode
+  frame: FrameNode;
+  text: TextNode;
   row: number;
   col: number;
 }
 
-interface TableCell {
-  text: {
-    characters: string;
-    fontName: any; // FontName
-    fontSize: number;
-    fills: readonly any[]; // Paint[]
-    textAlignHorizontal: "LEFT" | "CENTER" | "RIGHT";
-  };
-  fills: readonly any[]; // Paint[]
+// Frame 기반 테이블의 셀 인터페이스
+interface CustomTableCell {
+  text: any;
+  fills: readonly Paint[];
   paddingTop: number;
   paddingBottom: number;
   paddingLeft: number;
   paddingRight: number;
-  topBorder: any | null; // Paint | null
-  bottomBorder: any | null; // Paint | null
-  leftBorder: any | null; // Paint | null
-  rightBorder: any | null; // Paint | null;
+  topBorder: Paint | null;
+  bottomBorder: Paint | null;
+  leftBorder: Paint | null;
+  rightBorder: Paint | null;
 }
 
-interface TableObject {
-  container?: any; // FrameNode
+interface CustomTableObject {
+  container?: FrameNode;
   cells: CellReference[][];
   width: number;
   height: number;
-  cellAt(row: number, col: number): TableCell | null;
+  cellAt(row: number, col: number): CustomTableCell | null;
 }
 
 // --- 설정 상수 ---
@@ -171,7 +161,7 @@ async function createTableFromData(config: TableConfig): Promise<void> {
       figma.loadFontAsync(FONT_MEDIUM),
     ]);
 
-    let table: TableObject | TableNode;
+    let table: CustomTableObject | TableNode;
 
     // 테이블 생성 (환경에 따라 다른 방식 사용)
     if (typeof figma.createTable === "function") {
@@ -296,7 +286,7 @@ async function calculateColumnWidths(
 function createTableWithFrames(
   data: string[][],
   columnWidths: number[]
-): TableObject {
+): CustomTableObject {
   const rows = data.length;
   const cols = columnWidths.length;
   const totalTableWidth = columnWidths.reduce((sum, width) => sum + width, 0);
@@ -407,7 +397,7 @@ function createTableWithFrames(
     height: CELL_HEIGHT * rows,
 
     // TableNode API 호환 메서드
-    cellAt(row: number, col: number): TableCell | null {
+    cellAt(row: number, col: number): CustomTableCell | null {
       if (
         row >= 0 &&
         row < cells.length &&
@@ -424,32 +414,35 @@ function createTableWithFrames(
               cell.text.characters = value;
             },
             get fontName() {
-              return cell.text.fontName;
+              return cell.text.fontName as FontName;
             },
             set fontName(value: FontName) {
               cell.text.fontName = value;
             },
             get fontSize() {
-              return cell.text.fontSize;
+              return cell.text.fontSize as number;
             },
             set fontSize(value: number) {
               cell.text.fontSize = value;
             },
             get fills() {
-              return cell.text.fills;
+              return cell.text.fills as readonly Paint[];
             },
             set fills(value: readonly Paint[]) {
               cell.text.fills = value;
             },
             get textAlignHorizontal() {
-              return cell.text.textAlignHorizontal;
+              return cell.text.textAlignHorizontal as any as
+                | "LEFT"
+                | "CENTER"
+                | "RIGHT";
             },
             set textAlignHorizontal(value: "LEFT" | "CENTER" | "RIGHT") {
-              cell.text.textAlignHorizontal = value;
+              (cell.text as any).textAlignHorizontal = value;
             },
           },
           get fills() {
-            return cell.frame.fills;
+            return cell.frame.fills as readonly Paint[];
           },
           set fills(value: readonly Paint[]) {
             cell.frame.fills = value;
@@ -529,7 +522,7 @@ function createTableWithFrames(
  * 테이블에 데이터 채우기
  */
 async function populateTableData(
-  table: TableObject | TableNode,
+  table: CustomTableObject | TableNode,
   data: string[][],
   hasColumnHeader: boolean,
   hasRowHeader: boolean,
@@ -550,7 +543,7 @@ async function populateTableData(
 
       // 정렬 설정 적용
       const align = alignments?.[col] || "LEFT";
-      cell.text.textAlignHorizontal = align;
+      (cell.text as any).textAlignHorizontal = align;
 
       // 헤더 셀 폰트 설정
       const isColumnHeader = hasColumnHeader && row === 0;
@@ -572,7 +565,7 @@ async function populateTableData(
  * 테이블 스타일 적용
  */
 async function applyTableStyle(
-  table: TableObject | TableNode,
+  table: CustomTableObject | TableNode,
   style: TableStyle,
   hasColumnHeader: boolean,
   hasRowHeader: boolean,
@@ -602,24 +595,28 @@ async function applyTableStyle(
       cell.text.fills = [{ type: "SOLID", color: colors.text }];
 
       // 셀 패딩 설정
-      cell.paddingTop = PADDING_VERTICAL;
-      cell.paddingBottom = PADDING_VERTICAL;
-      cell.paddingLeft = PADDING_HORIZONTAL;
-      cell.paddingRight = PADDING_HORIZONTAL;
+      if ("paddingTop" in cell) {
+        (cell as any).paddingTop = PADDING_VERTICAL;
+        (cell as any).paddingBottom = PADDING_VERTICAL;
+        (cell as any).paddingLeft = PADDING_HORIZONTAL;
+        (cell as any).paddingRight = PADDING_HORIZONTAL;
+      }
 
       // 기본 배경색
       cell.fills = [{ type: "SOLID", color: colors.white }];
 
       // 테두리 설정
-      const borderStyle: Paint = {
-        type: "SOLID",
-        color: colors.mediumGray,
-      };
+      if ("topBorder" in cell) {
+        const borderStyle: Paint = {
+          type: "SOLID",
+          color: colors.mediumGray,
+        };
 
-      cell.topBorder = borderStyle;
-      cell.bottomBorder = borderStyle;
-      cell.leftBorder = borderStyle;
-      cell.rightBorder = borderStyle;
+        (cell as any).topBorder = borderStyle;
+        (cell as any).bottomBorder = borderStyle;
+        (cell as any).leftBorder = borderStyle;
+        (cell as any).rightBorder = borderStyle;
+      }
     }
   }
 
@@ -668,7 +665,7 @@ async function applyTableStyle(
  * 기본 스타일 적용
  */
 function applyDefaultStyle(
-  table: TableObject | TableNode,
+  table: CustomTableObject | TableNode,
   colors: TableColors,
   hasColumnHeader: boolean,
   hasRowHeader: boolean,
@@ -718,7 +715,7 @@ function applyDefaultStyle(
  * 미니멀 스타일 적용
  */
 function applyMinimalStyle(
-  table: TableObject | TableNode,
+  table: CustomTableObject | TableNode,
   colors: TableColors,
   hasColumnHeader: boolean,
   hasRowHeader: boolean,
@@ -732,10 +729,12 @@ function applyMinimalStyle(
       if (!cell) continue;
 
       // 테두리 제거
-      cell.topBorder = null;
-      cell.bottomBorder = null;
-      cell.leftBorder = null;
-      cell.rightBorder = null;
+      if ("topBorder" in cell) {
+        (cell as any).topBorder = null;
+        (cell as any).bottomBorder = null;
+        (cell as any).leftBorder = null;
+        (cell as any).rightBorder = null;
+      }
 
       // 배경 투명하게
       cell.fills = [];
@@ -748,10 +747,12 @@ function applyMinimalStyle(
       const headerCell = table.cellAt(0, col);
       if (!headerCell) continue;
 
-      headerCell.bottomBorder = {
-        type: "SOLID",
-        color: colors.darkGray,
-      };
+      if ("bottomBorder" in headerCell) {
+        (headerCell as any).bottomBorder = {
+          type: "SOLID",
+          color: colors.darkGray,
+        };
+      }
       headerCell.text.fills = [{ type: "SOLID", color: colors.headerText }];
       headerCell.text.fontSize = FONT_SIZE_HEADER;
     }
@@ -764,10 +765,12 @@ function applyMinimalStyle(
       const headerCell = table.cellAt(row, 0);
       if (!headerCell) continue;
 
-      headerCell.rightBorder = {
-        type: "SOLID",
-        color: colors.darkGray,
-      };
+      if ("rightBorder" in headerCell) {
+        (headerCell as any).rightBorder = {
+          type: "SOLID",
+          color: colors.darkGray,
+        };
+      }
       headerCell.text.fills = [{ type: "SOLID", color: colors.headerText }];
       headerCell.text.fontSize = FONT_SIZE_HEADER;
     }
@@ -777,14 +780,16 @@ function applyMinimalStyle(
   if (hasColumnHeader && hasRowHeader) {
     const cornerCell = table.cellAt(0, 0);
     if (cornerCell) {
-      cornerCell.bottomBorder = {
-        type: "SOLID",
-        color: colors.darkGray,
-      };
-      cornerCell.rightBorder = {
-        type: "SOLID",
-        color: colors.darkGray,
-      };
+      if ("bottomBorder" in cornerCell) {
+        (cornerCell as any).bottomBorder = {
+          type: "SOLID",
+          color: colors.darkGray,
+        };
+        (cornerCell as any).rightBorder = {
+          type: "SOLID",
+          color: colors.darkGray,
+        };
+      }
     }
   }
 }
@@ -793,7 +798,7 @@ function applyMinimalStyle(
  * 굵은 헤더 스타일 적용
  */
 function applyBoldStyle(
-  table: TableObject | TableNode,
+  table: CustomTableObject | TableNode,
   colors: TableColors,
   hasColumnHeader: boolean,
   hasRowHeader: boolean,
@@ -855,7 +860,7 @@ function applyBoldStyle(
  * 컬러 스타일 적용
  */
 function applyColoredStyle(
-  table: TableObject | TableNode,
+  table: CustomTableObject | TableNode,
   colors: TableColors,
   hasColumnHeader: boolean,
   hasRowHeader: boolean,
