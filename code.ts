@@ -106,7 +106,7 @@ if (figma.command === "paste-data" || !figma.command) {
   figma.showUI(__html__, {
     width: UI_WIDTH,
     height: UI_HEIGHT,
-    title: "텍스트 투 테이블",
+    title: "Text To Table (T2T)",
   });
 } else if (figma.command === "resize") {
   resizeTable()

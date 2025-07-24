@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>텍스트 투 테이블</title>
+    <title>Text to Table</title>
     <style>
       * {
         box-sizing: border-box;
@@ -56,7 +56,7 @@
 
       .textarea {
         width: 100%;
-        min-height: 120px;
+        min-height: 200px;
         padding: 12px;
         border: 1px solid #d1d5db;
         border-radius: 6px;
@@ -113,6 +113,10 @@
         align-items: center;
         gap: 8px;
         margin-bottom: 6px;
+      }
+
+      .checkbox-group label {
+        margin-bottom: 0;
       }
 
       .checkbox {
@@ -292,76 +296,94 @@
   <body>
     <div class="container">
       <div class="header">
-        <div class="title">텍스트를 테이블로 변환</div>
+        <div class="title">Convert Text to Table</div>
         <div class="description">
-          엑셀이나 구글 시트에서 복사한 데이터를 붙여넣어 피그마 테이블로
-          변환하세요
+          Paste data copied from Excel or Google Sheets to convert into Figma
+          tables
         </div>
       </div>
 
       <div class="input-section">
-        <label class="label">텍스트 데이터</label>
+        <label class="label"><b>Text Data</b></label>
         <textarea
           id="textInput"
           class="textarea"
-          placeholder="여기에 데이터를 붙여넣으세요...&#10;&#10;예시:&#10;이름	나이	도시&#10;김철수	25	서울&#10;이영희	30	부산"
+          placeholder="Paste your data here...&#10;&#10;Example:&#10;Name	Age	City&#10;John	25	Seoul&#10;Jane	30	Busan"
         ></textarea>
         <div class="paste-hint">
-          Ctrl+V (Windows) 또는 Cmd+V (Mac)으로 붙여넣기
+          Use Ctrl+V (Windows) or Cmd+V (Mac) to paste
         </div>
       </div>
 
       <div class="options-section">
-        <label class="label">변환 옵션</label>
+        <label class="label"><b>Conversion Options</b></label>
         <div class="options-grid">
           <div class="option-group">
-            <label class="label">구분자</label>
+            <label class="label">Delimiter</label>
             <select id="delimiter" class="select">
-              <option value="auto">자동 감지</option>
-              <option value="\t">탭 (TSV)</option>
-              <option value=",">쉼표 (CSV)</option>
-              <option value=";">세미콜론</option>
-              <option value="|">파이프 (|)</option>
-              <option value=" ">공백</option>
+              <option value="auto">Auto Detect</option>
+              <option value="\t">Tab (TSV)</option>
+              <option value=",">Comma (CSV)</option>
+              <option value=";">Semicolon</option>
+              <option value="|">Pipe (|)</option>
+              <option value=" ">Space</option>
             </select>
           </div>
           <div class="option-group">
-            <label class="label">스타일</label>
+            <label class="label">Style</label>
             <select id="tableStyle" class="select">
-              <option value="default">기본</option>
-              <option value="minimal">미니멀</option>
-              <option value="bold">굵은 헤더</option>
-              <option value="colored">컬러</option>
+              <option value="default">Default</option>
+              <option value="minimal">Minimal</option>
+              <option value="bold">Bold Header</option>
+              <option value="colored">Colored</option>
             </select>
           </div>
         </div>
         <div class="header-options">
-          <label class="label">헤더 설정</label>
+          <label class="label"><b>Header Settings</b></label>
           <div class="checkbox-group">
             <input
-              type="checkbox"
-              id="hasColumnHeader"
+              type="radio"
+              id="noHeader"
+              name="headerType"
               class="checkbox"
+              value="none"
+            />
+            <label for="noHeader" class="label">No header</label>
+          </div>
+          <div class="checkbox-group">
+            <input
+              type="radio"
+              id="hasColumnHeader"
+              name="headerType"
+              class="checkbox"
+              value="column"
               checked
             />
             <label for="hasColumnHeader" class="label"
-              >첫 번째 행을 헤더로 사용 (Column-head)</label
+              >Use first row as header (Column-head)</label
             >
           </div>
           <div class="checkbox-group">
-            <input type="checkbox" id="hasRowHeader" class="checkbox" />
+            <input
+              type="radio"
+              id="hasRowHeader"
+              name="headerType"
+              class="checkbox"
+              value="row"
+            />
             <label for="hasRowHeader" class="label"
-              >첫 번째 열을 헤더로 사용 (Row-head)</label
+              >Use first column as header (Row-head)</label
             >
           </div>
         </div>
       </div>
 
       <div class="preview-section">
-        <label class="label">미리보기</label>
+        <label class="label"><b>Preview</b></label>
         <div class="stats">
-          <span id="tableStats">행: 0, 열: 0</span>
-          <span id="parseStatus">데이터를 입력해주세요</span>
+          <span id="tableStats">Rows: 0, Columns: 0</span>
+          <span id="parseStatus">Please enter data</span>
         </div>
         <div id="alignment-controls" class="alignment-controls"></div>
         <div class="preview-table-container">
@@ -375,9 +397,9 @@
       <div id="errorContainer"></div>
 
       <div class="button-group">
-        <button id="cancelBtn" class="button button-secondary">취소</button>
+        <button id="cancelBtn" class="button button-secondary">Cancel</button>
         <button id="createBtn" class="button button-primary" disabled>
-          테이블 생성
+          Create Table
         </button>
       </div>
     </div>
@@ -387,8 +409,9 @@
       const textInput = document.getElementById("textInput");
       const delimiter = document.getElementById("delimiter");
       const tableStyle = document.getElementById("tableStyle");
-      const hasHeader = document.getElementById("hasColumnHeader");
-      const hasRowHeader = document.getElementById("hasRowHeader");
+      const headerRadios = document.querySelectorAll(
+        'input[name="headerType"]'
+      );
       const previewTable = document.getElementById("previewTable");
       const tableStats = document.getElementById("tableStats");
       const parseStatus = document.getElementById("parseStatus");
@@ -424,15 +447,15 @@
           usedDelimiter = best.delimiter;
           detectedDelimiter =
             usedDelimiter === "\t"
-              ? "탭"
+              ? "Tab"
               : usedDelimiter === ","
-              ? "쉼표"
+              ? "Comma"
               : usedDelimiter === ";"
-              ? "세미콜론"
+              ? "Semicolon"
               : usedDelimiter === "|"
-              ? "파이프"
+              ? "Pipe"
               : usedDelimiter === " "
-              ? "공백"
+              ? "Space"
               : best.delimiter;
         }
 
@@ -471,12 +494,21 @@
         return result;
       }
 
+      // 헤더 타입 가져오기 함수
+      function getHeaderType() {
+        const checked = document.querySelector(
+          'input[name="headerType"]:checked'
+        );
+        return checked ? checked.value : "none";
+      }
+
       // 테이블 미리보기 업데이트
       function updatePreview() {
         const text = textInput.value;
         const delimiterValue = delimiter.value;
-        const useColumnHeader = hasHeader.checked;
-        const useRowHeader = hasRowHeader.checked;
+        const headerType = getHeaderType();
+        const useColumnHeader = headerType === "column";
+        const useRowHeader = headerType === "row";
 
         // 에러 메시지 초기화
         errorContainer.innerHTML = "";
@@ -484,7 +516,7 @@
         if (!text.trim()) {
           parsedData = [];
           updatePreviewTable([]);
-          updateStats(0, 0, "데이터를 입력해주세요");
+          updateStats(0, 0, "Please enter data");
           createBtn.disabled = true;
           return;
         }
@@ -493,7 +525,7 @@
           parsedData = parseCSV(text, delimiterValue);
 
           if (parsedData.length === 0) {
-            throw new Error("파싱할 수 있는 데이터가 없습니다.");
+            throw new Error("No data available to parse.");
           }
 
           // 빈 행 제거
@@ -502,7 +534,7 @@
           );
 
           if (parsedData.length === 0) {
-            throw new Error("유효한 데이터가 없습니다.");
+            throw new Error("No valid data found.");
           }
 
           // 컬럼 수 통일 (가장 긴 행을 기준으로)
@@ -519,9 +551,9 @@
 
           const rows = parsedData.length;
           const cols = maxCols;
-          let status = `파싱 완료`;
+          let status = `Parsing completed`;
           if (delimiterValue === "auto") {
-            status += ` (${detectedDelimiter} 구분자 감지)`;
+            status += ` (${detectedDelimiter} delimiter detected)`;
           }
 
           updateStats(rows, cols, status);
@@ -557,7 +589,7 @@
               th.style.background = "#e5e7eb";
               th.style.fontWeight = "bold";
             }
-            th.textContent = cell || "(빈값)";
+            th.textContent = cell || "(empty)";
             tr.appendChild(th);
           });
           thead.appendChild(tr);
@@ -580,7 +612,7 @@
               element.style.color = "#374151";
             }
 
-            element.textContent = cell || "(빈값)";
+            element.textContent = cell || "(empty)";
             tr.appendChild(element);
           });
           tbody.appendChild(tr);
@@ -591,7 +623,7 @@
           const tr = document.createElement("tr");
           const td = document.createElement("td");
           td.colSpan = data[0].length;
-          td.textContent = `... ${dataRows.length - 10}개 행 더 있음`;
+          td.textContent = `... ${dataRows.length - 10} more rows`;
           td.style.textAlign = "center";
           td.style.fontStyle = "italic";
           td.style.color = "#6b7280";
@@ -602,7 +634,7 @@
 
       // 통계 업데이트
       function updateStats(rows, cols, status) {
-        tableStats.textContent = `행: ${rows}, 열: ${cols}`;
+        tableStats.textContent = `Rows: ${rows}, Columns: ${cols}`;
         parseStatus.textContent = status;
       }
 
@@ -610,7 +642,7 @@
       function showError(message) {
         errorContainer.innerHTML = `
         <div class="error-message">
-          오류: ${message}
+          Error: ${message}
         </div>
       `;
       }
@@ -627,8 +659,9 @@
       // 이벤트 리스너
       textInput.addEventListener("input", updatePreview);
       delimiter.addEventListener("change", updatePreview);
-      hasHeader.addEventListener("change", updatePreview);
-      hasRowHeader.addEventListener("change", updatePreview);
+      headerRadios.forEach((radio) => {
+        radio.addEventListener("change", updatePreview);
+      });
       tableStyle.addEventListener("change", updatePreview);
 
       // 붙여넣기 이벤트 처리
@@ -645,14 +678,15 @@
       // 테이블 생성 버튼
       createBtn.addEventListener("click", () => {
         if (parsedData.length === 0) {
-          showError("생성할 데이터가 없습니다.");
+          showError("No data to create table from.");
           return;
         }
 
+        const headerType = getHeaderType();
         const config = {
           data: parsedData,
-          hasColumnHeader: hasHeader.checked,
-          hasRowHeader: hasRowHeader.checked,
+          hasColumnHeader: headerType === "column",
+          hasRowHeader: headerType === "row",
           style: tableStyle.value,
           delimiter: delimiter.value,
           alignments: columnAlignments,
@@ -674,7 +708,7 @@
         const { type, message } = event.data.pluginMessage || {};
 
         if (type === "table-created") {
-          showSuccess("테이블이 성공적으로 생성되었습니다!");
+          showSuccess("Table created successfully!");
           setTimeout(() => {
             parent.postMessage({ pluginMessage: { type: "close" } }, "*");
           }, 1500);

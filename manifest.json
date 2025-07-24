@@ -1,12 +1,14 @@
 {
   "name": "Text to Table",
-  "id": "1234567890123456789",
+  "id": "1529760530815934110",
   "api": "1.0.0",
   "main": "code.js",
   "capabilities": [],
   "enableProposedApi": false,
+  "networkAccess": { "allowedDomains": ["none"] },
   "editorType": ["figma", "figjam"],
   "ui": "ui.html",
+  "documentAccess": "dynamic-page",
   "relaunchButtons": [
     {
       "command": "resize",
